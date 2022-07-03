@@ -4,7 +4,6 @@ async function main(mode,email,oobCode) {
     // Generate test SMTP service account from ethereal.email
     // Only needed if you don't have a real mail account for testing
     // create reusable transporter object using the default SMTP transport
-    console.log( process.env.MAIL_SECRET)
     let transporter =  nodemailer.createTransport({ // config mail server
         host: 'smtp.gmail.com',
         port: 465,
