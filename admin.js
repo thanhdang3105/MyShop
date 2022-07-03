@@ -1,9 +1,13 @@
 const { initializeApp, cert } = require('firebase-admin/app');
-const admin_key = require('./myshop-f370b-firebase-adminsdk-ryxnt-7d3439f500.json')
 const { getAuth } = require('firebase-admin/auth');
 
 const app = initializeApp({
-    credential: cert(admin_key),
+    
+    credential: cert({
+        projectId: process.env.PROJECT_ID,
+        clientEmail: process.env.CLIENT_EMAIL,
+        privateKey: `-----BEGIN PRIVATE KEY-----${process.env.PRIVATE_KEY}-----END PRIVATE KEY-----\n`
+      }),
     databaseURL: 'https://MyShop.firebaseio.com'
 });
 

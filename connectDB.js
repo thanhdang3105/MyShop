@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 async function connect() {
     try {
-        await mongoose.connect(`mongodb+srv://ThanhGroup:${process.env.PASSWORD_DB}@cluster0.ltcw2a1.mongodb.net/Myshop`);
+        await mongoose.connect(process.env.URI_DB);
         console.log('Connect Successfully');
     } catch (e) {
         console.log('Connect Fail');
