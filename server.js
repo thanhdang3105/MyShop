@@ -178,7 +178,7 @@ app.get('/api/database',(req, res) => {
         data1.map(data => {
             data.listImage = data.listImage.map(img => {
                 const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
-                return 'data:image/png;base64, '+image
+                return {name: img,url:'data:image/png;base64, '+image}
             })
             return data
         })
