@@ -17,10 +17,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors())
 db.connect();
 
-app.get('/mongodb-site-verification.html',(req, res) => {
-    res.render('index.html')
-})
-
 app.post('/api/handleProducts', (req, res,next) => {
     const form = formidable({multiples: true,uploadDir: '../website/src/asset/img', filename: (name,ext,part,form) => {
         return part.originalFilename
