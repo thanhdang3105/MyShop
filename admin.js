@@ -1,8 +1,6 @@
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-
 const app = initializeApp({
-    
     credential: cert({
         projectId: process.env.PROJECT_ID,
         clientEmail: process.env.CLIENT_EMAIL,
