@@ -258,7 +258,7 @@ app.post('/api/cartList',(req, res, next) => {
                     name: data.name,
                     path: '/san-pham/'+data.slug,
                     price: data.price,
-                    imageURL: data.listImage[0],
+                    imageURL: data.listImage[0].url,
                     size: data.size,
                     color: data.color,
                     user: data.user,
