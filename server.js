@@ -1,6 +1,7 @@
 const express = require('express');
 const formidable = require('formidable');
 const cors = require('cors')
+const fs = require('fs')
 const app = express();
 const Products = require('./models/Products')
 const Catalog = require('./models/Catalog');
@@ -18,7 +19,7 @@ app.use(cors())
 db.connect();
 
 app.post('/api/handleProducts', (req, res,next) => {
-    const form = formidable({multiples: true,uploadDir: '../website/src/asset/img', filename: (name,ext,part,form) => {
+    const form = formidable({multiples: true,uploadDir: './img', filename: (name,ext,part,form) => {
         return part.originalFilename
     }})
 
@@ -174,6 +175,13 @@ app.get('/api/database',(req, res) => {
     const category = Category.find({})
     Promise.all([products,catalogs,category])
     .then(([data1,data2,data3]) => {
+        data1.map(data => {
+            data.listImage = data.listImage.map(img => {
+                const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
+                return 'data:image/png;base64, '+image
+            })
+            return data
+        })
         res.json({
             products: data1,
             catalogs: data2,
