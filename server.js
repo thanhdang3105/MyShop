@@ -18,6 +18,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors())
 db.connect();
 
+function getBase64(listImage) {
+    return listImage.map(img => {
+        const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
+        return {name: img,url:'data:image/png;base64, '+image}
+    })
+}
+
 app.post('/api/handleProducts', (req, res,next) => {
     const form = formidable({multiples: true,uploadDir: './img', filename: (name,ext,part,form) => {
         return part.originalFilename
@@ -147,14 +154,26 @@ app.post('/api/handleProducts', (req, res,next) => {
                 const data = new Products(value)
                 data.save((err,doc) => {
                     if (err) return next()
-                    res.status(200).json({...status,data:doc})
+                    if(status?.message){
+                        res.status(200).json({...status})
+                    }
+                    else{
+                        doc.listImage = getBase64(doc.listImage)
+                        res.status(200).json(doc)
+                    }
                 })
                 break;
             case 'update':
                 const listImage = value.listImage.concat(value.newImage)
                 Products.findByIdAndUpdate({_id: value._id},{...value,listImage},{new:true},(err,doc) => {
                     if(err) console.log(err)
-                    res.status(200).json({...status,data:doc})
+                    if(status?.message){
+                        res.status(200).json({...status})
+                    }
+                    else{
+                        doc.listImage = getBase64(doc.listImage)
+                        res.status(200).json(doc)
+                    }
                 })
                 break;
             default:
@@ -175,7 +194,7 @@ app.get('/api/database',(req, res) => {
     const category = Category.find({})
     Promise.all([products,catalogs,category])
     .then(([data1,data2,data3]) => {
-        data1.map(data => {
+        data1?.map(data => {
             data.listImage = data.listImage.map(img => {
                 const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
                 return {name: img,url:'data:image/png;base64, '+image}
