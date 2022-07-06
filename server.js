@@ -77,6 +77,7 @@ app.post('/api/handleProducts', (req, res,next) => {
                 }
             }
         })
+        .catch(err => console.log(err))
         await Category.find({name: {$in: category}}).then(result => {
             if(!result.length) {
                 const newCollection = category.map(item => {
@@ -146,6 +147,7 @@ app.post('/api/handleProducts', (req, res,next) => {
                 
             }
         })
+        .catch(err => console.log(err))
         value.catalog = value.catalog.join(',')
         value.category = category.join(',')
         value.collections = collections.join(',')
@@ -153,7 +155,7 @@ app.post('/api/handleProducts', (req, res,next) => {
             case 'create':
                 const data = new Products(value)
                 data.save((err,doc) => {
-                    if (err) return next()
+                    if (err) return console.log(err)
                     if(status?.message){
                         res.status(200).json({...status})
                     }
@@ -166,7 +168,7 @@ app.post('/api/handleProducts', (req, res,next) => {
             case 'update':
                 const listImage = value.listImage.concat(value.newImage)
                 Products.findByIdAndUpdate({_id: value._id},{...value,listImage},{new:true},(err,doc) => {
-                    if(err) console.log(err)
+                    if(err) return console.log(err)
                     if(status?.message){
                         res.status(200).json({...status})
                     }

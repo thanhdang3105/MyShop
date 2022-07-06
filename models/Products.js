@@ -17,7 +17,6 @@ const Products = new Schema({
   },
   description: {
     type: String,
-    maxlength: 600
   },
   listImage: {
     type: Array,
