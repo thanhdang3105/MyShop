@@ -15,25 +15,13 @@ const { auth } = require('./admin');
 const { main } = require('./sendEmail');
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(cors())
 db.connect();
 
-function getBase64(listImage) {
-    return listImage.map(img => {
-        try{
-            const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
-            return {name: img,url:'data:image/png;base64, '+image}
-        }catch(err){console.log(err)}
-    })
-}
 
-app.post('/api/handleProducts', (req, res,next) => {
-    const form = formidable({multiples: true,uploadDir: './img', filename: (name,ext,part,form) => {
-        return part.originalFilename
-    }})
-
-    form.parse(req, async (err,fields,files) => {
-        const value = JSON.parse(fields.fields)
+app.post('/api/handleProducts', async (req, res,next) => {
+        const value = req.body.data
         const catalog = value.catalog
         const category = value.category
         const collections = value.collections
@@ -153,7 +141,7 @@ app.post('/api/handleProducts', (req, res,next) => {
         value.catalog = value.catalog.join(',')
         value.category = category.join(',')
         value.collections = collections.join(',')
-        switch(fields.action){
+        switch(req.body.action){
             case 'create':
                 const data = new Products(value)
                 data.save((err,doc) => {
@@ -162,7 +150,6 @@ app.post('/api/handleProducts', (req, res,next) => {
                         res.status(200).json({...status})
                     }
                     else{
-                        doc.listImage = getBase64(doc.listImage)
                         res.status(200).json(doc)
                     }
                 })
@@ -175,7 +162,6 @@ app.post('/api/handleProducts', (req, res,next) => {
                         res.status(200).json({...status})
                     }
                     else{
-                        doc.listImage = getBase64(doc.listImage)
                         res.status(200).json(doc)
                     }
                 })
@@ -183,7 +169,6 @@ app.post('/api/handleProducts', (req, res,next) => {
             default:
                 throw new Error(`Invalid Action`);
         }
-    })
 });
 
 app.delete('/api/deleteProduct/:id',(req, res) => {
@@ -198,10 +183,6 @@ app.get('/api/database',(req, res) => {
     const category = Category.find({})
     Promise.all([products,catalogs,category])
     .then(([data1,data2,data3]) => {
-        data1?.map(data => {
-            data.listImage = getBase64(data.listImage)
-            return data
-        })
         res.json({
             products: data1,
             catalogs: data2,
@@ -218,17 +199,15 @@ app.get('/api/cartList/:id', (req, res) => {
 })
 
 app.post('/api/OdersList',(req, res,next) => {
-    const form = formidable()
-    form.parse(req,(err,fields,files) => {
-       switch(fields.action) {
+       switch(req.body.action) {
         case 'create':
             //fields:{action:'create',data:data}
-            const data = new OdersList(fields.data)
+            const data = new OdersList(req.body.data)
             data.save((err,value) =>{
                 if(err) return next()
                 res.status(200).json(value)
             })
-            fields.data.items.map(item=>{
+            req.body.data.items.map(item=>{
                 Products.findOne({name: item.name})
                 .then(doc => {
                     doc.sell += item.amount
@@ -240,7 +219,7 @@ app.post('/api/OdersList',(req, res,next) => {
             break
         case 'getByUserId':
             //fields:{action:'getByUserId',userId:userId}
-            OdersList.find({user: fields.userId})
+            OdersList.find({user: req.body.userId})
             .then(data => res.status(200).json(data))
             .catch(err => res.status(500).json(err))
             break
@@ -251,7 +230,7 @@ app.post('/api/OdersList',(req, res,next) => {
             break
         case 'updateStatusById': 
             //fields:{action:'updateStatusById',_id:_id,status:data}
-            OdersList.findByIdAndUpdate({_id: fields._id},{status: fields.status}).then(result => {
+            OdersList.findByIdAndUpdate({_id: req.body._id},{status: req.body.status}).then(result => {
                 res.status(200).json()
             })
             .catch(err => res.status(404).json(err))
@@ -264,15 +243,11 @@ app.post('/api/OdersList',(req, res,next) => {
         default:
             throw new Error(`Invalid Action`)
        }
-    })
 })
 
 app.post('/api/cartList',(req, res, next) => {
-    const form = formidable()
-
-    form.parse(req,(err,fields,files) => {
-        const data = fields.data
-        switch(fields.action) {
+        const data = req.body.data
+        switch(req.body.action) {
             case 'create': 
                 new CartList({
                     name: data.name,
@@ -307,27 +282,23 @@ app.post('/api/cartList',(req, res, next) => {
             default:
                 throw new Error('Invalid request')
         }
-    })
 })
 
 app.post('/api/admin/users',(req, res, next) => {
-    const form = formidable()
-
-    form.parse(req, (err,fields,files) => {
         const actionCodeSettings = {
             url: 'http://localhost:3000/',
             handleCodeInApp: true,
         };
-        switch(fields.action) {
+        switch(req.body.action) {
             case 'verifyEmail':
-                auth.generateEmailVerificationLink(fields.data, actionCodeSettings)
+                auth.generateEmailVerificationLink(req.body.data, actionCodeSettings)
                     .then((link) => {
                       // Construct email verification template, embed the link and send
                       // using custom SMTP server.
                       const start = link.search('oobCode=') + 'oobCode='.length
                       const end = link.search('&continueUrl')
                       const oobCode = link.slice(start, end)
-                      main('Xác thực tài khoản',fields.data,oobCode)
+                      main('Xác thực tài khoản',req.body.data,oobCode)
                       .then(result => res.status(200).json())
                       .catch(err => console.log(err))
                     })
@@ -337,26 +308,26 @@ app.post('/api/admin/users',(req, res, next) => {
                     });
                 break
             case 'deleteUser':
-                auth.deleteUser(fields.uid)
+                auth.deleteUser(req.body.uid)
                 .then(result => res.status(200).json())
                 .catch(err => res.status(500).json(err))
                 break
             case 'updatePwd':
-                auth.updateUser(fields.uid,{ password: fields.newPassword })
+                auth.updateUser(req.body.uid,{ password: req.body.newPassword })
                 .then(userRecord => {
                     res.status(200).json()
                 })
                 .catch(err => res.status(500).json(err))
                 break
             case 'resetPassword':
-                auth.generatePasswordResetLink(fields.data, actionCodeSettings)
+                auth.generatePasswordResetLink(req.body.data, actionCodeSettings)
                     .then((link) => {
                       // Construct email verification template, embed the link and send
                       // using custom SMTP server.
                       const start = link.search('oobCode=') + 'oobCode='.length
                       const end = link.search('&continueUrl')
                       const oobCode = link.slice(start, end)
-                      main('Xác thực và đổi mật khẩu',fields.data,oobCode)
+                      main('Xác thực và đổi mật khẩu',req.body.data,oobCode)
                       .then(result => res.status(200).json())
                       .catch(err => console.log(err))
                     })
@@ -366,8 +337,8 @@ app.post('/api/admin/users',(req, res, next) => {
                     });
                 break
             case 'checkAdmin':
-                if(fields.method === 'phone'){
-                    auth.getUserByPhoneNumber(fields.data)
+                if(req.body.method === 'phone'){
+                    auth.getUserByPhoneNumber(req.body.data)
                     .then(UserRecord => {
                         if(UserRecord.customClaims['admin']) {
                             res.status(200).json()
@@ -379,19 +350,19 @@ app.post('/api/admin/users',(req, res, next) => {
                     .catch(err => {
                         res.status(500).json(err.code)
                     })
-                }else if(fields.method === 'email'){
-                    auth.getUserByEmail(fields.data)
+                }else if(req.body.method === 'email'){
+                    auth.getUserByEmail(req.body.data)
                         .then(UserRecord => {
                             if(UserRecord.customClaims && UserRecord.customClaims['admin']) {
-                                if(fields.status === 'login'){
-                                    auth.generateEmailVerificationLink(fields.data, actionCodeSettings)
+                                if(req.body.status === 'login'){
+                                    auth.generateEmailVerificationLink(req.body.data, actionCodeSettings)
                                     .then((link) => {
                                     // Construct email verification template, embed the link and send
                                     // using custom SMTP server.
                                         const start = link.search('oobCode=') + 'oobCode='.length
                                         const end = link.search('&continueUrl')
                                         const oobCode = link.slice(start, end)
-                                        main('Xác thực tư cách admin',fields.data,oobCode)
+                                        main('Xác thực tư cách admin',req.body.data,oobCode)
                                             .then(() => {
                                                 auth.createCustomToken(UserRecord.uid).then((token) => {
                                                     res.status(200).json(token)
@@ -414,9 +385,9 @@ app.post('/api/admin/users',(req, res, next) => {
                 }
                 break
             case 'setAdmin':
-                auth.getUser(fields.uid).then(UserRecord => {
-                    if(fields.data){
-                        auth.setCustomUserClaims(UserRecord.uid,{admin: fields.data})
+                auth.getUser(req.body.uid).then(UserRecord => {
+                    if(req.body.data){
+                        auth.setCustomUserClaims(UserRecord.uid,{admin: req.body.data})
                         .then(() => res.status(200).json())
                         .catch(err => res.status(500).json(err))
                     }
@@ -428,9 +399,8 @@ app.post('/api/admin/users',(req, res, next) => {
                 })
                 break
             default:
-                throw new Error(`Invalid action ${fields.action}`)
+                throw new Error(`Invalid action ${req.body.action}`)
         }
-    })
 })
 
 app.listen(process.env.PORT || 8080);
