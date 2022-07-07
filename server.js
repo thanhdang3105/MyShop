@@ -20,8 +20,10 @@ db.connect();
 
 function getBase64(listImage) {
     return listImage.map(img => {
-        const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
-        return {name: img,url:'data:image/png;base64, '+image}
+        try{
+            const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
+            return {name: img,url:'data:image/png;base64, '+image}
+        }catch(err){console.log(err)}
     })
 }
 
@@ -197,10 +199,7 @@ app.get('/api/database',(req, res) => {
     Promise.all([products,catalogs,category])
     .then(([data1,data2,data3]) => {
         data1?.map(data => {
-            data.listImage = data.listImage.map(img => {
-                const image = fs.readFileSync('./img/'+img,{encoding: 'base64'});
-                return {name: img,url:'data:image/png;base64, '+image}
-            })
+            data.listImage = getBase64(data.listImage)
             return data
         })
         res.json({
